@@ -66,8 +66,8 @@ while True:
             done = False
             xMouse2 = event.pos[0]
             yMouse2 = event.pos[1]
-            clicked_pawn.x = xMouse2
-            clicked_pawn.y = yMouse2
+            clicked_pawn.x = xMouse2 - 32.5
+            clicked_pawn.y = yMouse2 - 32.5
             clicked_pawn.rect.center = (clicked_pawn.x, clicked_pawn.y)
 
     screen.blit(background, (0, 0))
