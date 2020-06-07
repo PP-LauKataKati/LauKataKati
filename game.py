@@ -68,6 +68,8 @@ class Game:
 
     done = False
 
+    next_move = 'white'
+
     def create_pawns(self):
         for pos in self.black_pos:
             pawn = black_pawn.BlackPawn(pos[0], pos[1])
@@ -135,6 +137,16 @@ class Game:
                 print(self.board_copy)
                 print()
 
+            for i in range(len(self.board_copy)):
+                self.board[i] = self.board_copy[i]
+
+            if self.next_move == 'white':
+                self.next_move = 'black'
+            elif self.next_move == 'black':
+                self.next_move = 'white'
+
+            return True
+
         for inner in self.available_captures[position2]:
                 if inner == position:
                     x = self.available_captures[position2].index(inner)
@@ -142,7 +154,7 @@ class Game:
         s = self.jumps[position2][x]
         print('S: ', s)
 
-        if self.color == 0 and self.board_copy[s] == 'black' or self.color == 1 and self.board_copy[s] == 'white':
+        if self.color == 0 and self.board_copy[s] == 'black' and self.board_copy[position] is None or self.color == 1 and self.board_copy[s] == 'white' and self.board_copy[position] is None:
             print('POPRAWNE BICIE')
             self.board_copy[position2] = None
             self.board_copy[s] = None
@@ -170,19 +182,31 @@ class Game:
                             pawn.y = 0
                             pawn.rect.center = (0, 0)
 
-        for i in range(len(self.board_copy)):
-            self.board[i] = self.board_copy[i]
+            for i in range(len(self.board_copy)):
+                self.board[i] = self.board_copy[i]
 
-        for white in self.white_pawns:
-            print(white.x, white.y)
+            if self.next_move == 'white':
+                self.next_move = 'black'
+            elif self.next_move == 'black':
+                self.next_move = 'white'
 
-        print()
+            return True
 
-        for black in self.black_pawns:
-            print(black.x, black.y)
+        # for white in self.white_pawns:
+        #     print(white.x, white.y)
+        #
+        # print()
+        #
+        # for black in self.black_pawns:
+        #     print(black.x, black.y)
+
+        return False
 
     def play(self):
         pygame.init()
+        pygame.font.init()
+        font = pygame.font.SysFont('Arial', 18)
+        textsurface = font.render('', False, (0, 0, 0))
 
         screen = pygame.display.set_mode((800, 800))
         pygame.display.set_caption('Lau kata kati')
@@ -210,25 +234,33 @@ class Game:
 
                     index = None
 
-                    for p in self.white_pawns:
-                        if p.rect.collidepoint(xMouse, yMouse):
-                            self.clicked_white.append(p)
-                            index = self.white_pawns.index(p)
+                    if self.next_move == 'white':
+                        for p in self.white_pawns:
+                            if p.rect.collidepoint(xMouse, yMouse):
+                                self.clicked_white.append(p)
+                                index = self.white_pawns.index(p)
+                        if len(self.clicked_white) == 1:
+                            print('BIAŁY ZŁAPANY')
+                            clicked_pawn = self.clicked_white[0]
+                            self.color = 0
+                            textsurface = font.render('', False, (0, 0, 0))
+                        else:
+                            self.done = False
+                            textsurface = font.render('Pionek wybrany niepoprawnie!', False, (0, 0, 0))
 
-                    for p in self.black_pawns:
-                        if p.rect.collidepoint(xMouse, yMouse):
-                            self.clicked_black.append(p)
-                            index = self.black_pawns.index(p)
-
-                    if len(self.clicked_white) == 1:
-                        print('BIAŁY ZŁAPANY')
-                        clicked_pawn = self.clicked_white[0]
-                        self.color = 0
-
-                    elif len(self.clicked_black) == 1:
-                        print('CZARNY HEHE ZŁAPANY')
-                        clicked_pawn = self.clicked_black[0]
-                        self.color = 1
+                    elif self.next_move == 'black':
+                        for p in self.black_pawns:
+                            if p.rect.collidepoint(xMouse, yMouse):
+                                self.clicked_black.append(p)
+                                index = self.black_pawns.index(p)
+                        if len(self.clicked_black) == 1:
+                            print('CZARNY HEHE ZŁAPANY')
+                            clicked_pawn = self.clicked_black[0]
+                            self.color = 1
+                            textsurface = font.render('', False, (0, 0, 0))
+                        else:
+                            self.done = False
+                            textsurface = font.render('Pionek wybrany niepoprawnie!', False, (0, 0, 0))
 
                     # for pawn in white_pawns:
                     #     print(pawn.x, pawn.y)
@@ -244,24 +276,38 @@ class Game:
                     #clicked_pawn.x = xMouse2
                     #clicked_pawn.y = yMouse2
 
-                    if self.color == 0:
-                        self.white_pawns[index].x = xMouse2
-                        self.white_pawns[index].y = yMouse2
-                        self.white_pawns[index].rect.center = (xMouse2, yMouse2)
+                    if self.move(xMouse, yMouse, xMouse2, yMouse2):
+                        if self.color == 0:
+                            self.white_pawns[index].x = xMouse2
+                            self.white_pawns[index].y = yMouse2
+                            self.white_pawns[index].rect.center = (xMouse2, yMouse2)
 
-                    elif self.color == 1:
-                        self.black_pawns[index].x = xMouse2
-                        self.black_pawns[index].y = yMouse2
-                        self.black_pawns[index].rect.center = (xMouse2, yMouse2)
+                        elif self.color == 1:
+                            self.black_pawns[index].x = xMouse2
+                            self.black_pawns[index].y = yMouse2
+                            self.black_pawns[index].rect.center = (xMouse2, yMouse2)
+
+                        textsurface = font.render('', False, (0, 0, 0))
+
+                    else:
+                        textsurface = font.render('Niepoprawny ruch!', False, (0, 0, 0))
+
+                    for whitepawn in self.white_pawns:
+                        print(whitepawn.x, whitepawn.y)
+
+                    print()
+
+                    for blackpawn in self.black_pawns:
+                        print(blackpawn.x, blackpawn.y)
 
                     # clicked_pawn.rect.center = (clicked_pawn.x, clicked_pawn.y)
-                    self.move(xMouse, yMouse, xMouse2, yMouse2)
+
 
                     self.clicked_white = []
                     self.clicked_black = []
 
             screen.blit(background, (0, 0))
-
+            screen.blit(textsurface, (0, 0))
             # for pawn in black_pawns:
             #     screen.blit(pawn.image, (pawn.x-32.5, pawn.y-32.5))
             #
