@@ -291,7 +291,7 @@ class Game:
 
         return calculated_moves
 
-    def minimax(self, depth, color, board, alpha, beta):
+    def minmax(self, depth, color, board, alpha, beta):
         virtual_board = [None] * 21
         for i in range(len(board)):
             virtual_board[i] = board[i]
@@ -301,7 +301,7 @@ class Game:
 
         moves = None
         if color == 'white':
-            maxEval = -100
+            maxEval = -math.inf
             moves = self.calculate_moves('white')
             for move in moves:
                 if move is not None:
@@ -309,15 +309,30 @@ class Game:
                     virtual_board[index] = None
                     for pos in move:
                         virtual_board[pos] = 'white'
-                        eval = self.minimax(depth - 1, 'black', virtual_board, alpha, beta)
-                        max_eval = max(max_eval, eval)
+                        eval = self.minmax(depth - 1, 'black', virtual_board, alpha, beta)
+                        maxEval = max(maxEval, eval)
                         alpha = max(alpha, eval)
                         if beta <= alpha:
                             break
+                    self.board = virtual_board
                     return maxEval
 
         else:
+            minEval = math.inf
             moves = self.calculate_moves('black')
+            for move in moves:
+                if move is not None:
+                    index = moves.index(move)
+                    virtual_board[index] = None
+                    for pos in move:
+                        virtual_board[pos] = 'black'
+                        eval= self.minmax(depth - 1, 'white', virtual_board, alpha, beta)
+                        minEval = min(minEval, eval)
+                        beta = min(beta, eval)
+                        if beta <= alpha:
+                            break
+                    self.board = virtual_board
+                    return minEval
 
     def play(self):
         pygame.init()
@@ -366,18 +381,22 @@ class Game:
                             textsurface = font.render('Pionek wybrany niepoprawnie!', False, (0, 0, 0))
 
                     elif self.next_move == 'black':
-                        for p in self.black_pawns:
-                            if p.rect.collidepoint(xMouse, yMouse):
-                                self.clicked_black.append(p)
-                                index = self.black_pawns.index(p)
-                        if len(self.clicked_black) == 1:
-                            print('CZARNY HEHE ZŁAPANY')
-                            clicked_pawn = self.clicked_black[0]
-                            self.color = 1
-                            textsurface = font.render('', False, (0, 0, 0))
-                        else:
-                            self.done = False
-                            textsurface = font.render('Pionek wybrany niepoprawnie!', False, (0, 0, 0))
+                        eval = self.minmax(3, 'black', self.board, -math.inf, math.inf)
+                        self.color = 1
+                        self.next_move = 'white'
+
+                        # for p in self.black_pawns:
+                        #     if p.rect.collidepoint(xMouse, yMouse):
+                        #         self.clicked_black.append(p)
+                        #         index = self.black_pawns.index(p)
+                        # if len(self.clicked_black) == 1:
+                        #     print('CZARNY HEHE ZŁAPANY')
+                        #     clicked_pawn = self.clicked_black[0]
+                        #     self.color = 1
+                        #     textsurface = font.render('', False, (0, 0, 0))
+                        # else:
+                        #     self.done = False
+                        #     textsurface = font.render('Pionek wybrany niepoprawnie!', False, (0, 0, 0))
 
                     # for pawn in white_pawns:
                     #     print(pawn.x, pawn.y)
