@@ -308,6 +308,21 @@ class Game:
                     index = moves.index(move)
                     virtual_board[index] = None
                     for pos in move:
+                        value = pos
+                        for captures in self.available_captures[index]:
+                            if captures == value:
+                                captures_index = self.available_captures[index].index(captures)
+                                x = self.jumps[index][captures_index]
+                                if virtual_board[x] == 'white':
+                                    virtual_board[x] = None
+                                    for pawn in self.black_pawns:
+                                        if (pawn.x < self.fields_pos[x][0] + 8) and (pawn.x > self.fields_pos[x][0] - 8):
+                                            if (pawn.y < self.fields_pos[x][1] + 8) and (pawn.y > self.fields_pos[x][1] - 8):
+                                                pawn.x = 0
+                                                pawn.y = 0
+                                                pawn.rect.center = (0, 0)
+
+
                         virtual_board[pos] = 'white'
                         eval = self.minmax(depth - 1, 'black', virtual_board, alpha, beta)
                         maxEval = max(maxEval, eval)
@@ -325,6 +340,21 @@ class Game:
                     index = moves.index(move)
                     virtual_board[index] = None
                     for pos in move:
+                        value = pos
+                        for captures in self.available_captures[index]:
+                            if captures == value:
+                                print('CAPTURES: ', captures)
+                                captures_index = self.available_captures[index].index(captures)
+                                x = self.jumps[index][captures_index]
+                                if virtual_board[x] == 'white':
+                                    virtual_board[x] = None
+                                    for pawn in self.white_pawns:
+                                        if (pawn.x < self.fields_pos[x][0] + 8) and (pawn.x > self.fields_pos[x][0] - 8):
+                                            if (pawn.y < self.fields_pos[x][1] + 8) and (pawn.y > self.fields_pos[x][1] - 8):
+                                                pawn.x = 0
+                                                pawn.y = 0
+                                                pawn.rect.center = (0, 0)
+
                         virtual_board[pos] = 'black'
                         eval= self.minmax(depth - 1, 'white', virtual_board, alpha, beta)
                         minEval = min(minEval, eval)
