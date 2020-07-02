@@ -67,6 +67,8 @@ class Game:
         self.clicked_white = []
         self.clicked_black = []
 
+        self.evaluated_boards = []
+
         self.done = False
 
         self.next_move = 'white'
@@ -152,16 +154,16 @@ class Game:
         # print()
 
         if position in self.available_moves[position2] and self.board_copy[position] is None:
-            print('POPRAWNY RUCH')
+            #print('POPRAWNY RUCH')
             self.board_copy[position2] = None
             if self.color == 0:
                 self.board_copy[position] = 'white'
-                print(self.board_copy)
-                print()
+                #print(self.board_copy)
+                #print()
             else:
                 self.board_copy[position] = 'black'
-                print(self.board_copy)
-                print()
+                #print(self.board_copy)
+                #print()
 
             for i in range(len(self.board_copy)):
                 self.board[i] = self.board_copy[i]
@@ -171,8 +173,8 @@ class Game:
             elif self.next_move == 'black':
                 self.next_move = 'white'
 
-            print('CALCULATED WHITE: ', self.calculate_moves('white'))
-            print('CALCULATED BLACK: ', self.calculate_moves('black'))
+            # print('CALCULATED WHITE: ', self.calculate_moves('white'))
+            # print('CALCULATED BLACK: ', self.calculate_moves('black'))
             return True
 
         for inner in self.available_captures[position2]:
@@ -181,12 +183,12 @@ class Game:
 
         #pozycja bitego pionka
         s = self.jumps[position2][x]
-        print('S: ', s)
+        #print('S: ', s)
 
         if self.color == 0 and self.board_copy[s] == 'black' and self.board_copy[
             position] is None or self.color == 1 and self.board_copy[s] == 'white' and self.board_copy[
             position] is None:
-            print('POPRAWNE BICIE')
+            #print('POPRAWNE BICIE')
             self.board_copy[position2] = None
             self.board_copy[s] = None
             if self.color == 0:
@@ -221,8 +223,8 @@ class Game:
             elif self.next_move == 'black':
                 self.next_move = 'white'
 
-            print('CALCULATED WHITE: ', self.calculate_moves('white'))
-            print('CALCULATED BLACK: ', self.calculate_moves('black'))
+            # print('CALCULATED WHITE: ', self.calculate_moves('white'))
+            # print('CALCULATED BLACK: ', self.calculate_moves('black'))
             return True
 
         # for white in self.white_pawns:
@@ -246,45 +248,45 @@ class Game:
                 black += 1
 
         evaluation = white - black
-        print('EVALUATION: ', evaluation)
+        #print('EVALUATION: ', evaluation)
         return evaluation
 
-    def calculate_moves(self, color):
+    def calculate_moves(self, color, board):
         calculated_moves = [None] * 21
         moves = []
         k = 0
 
-        for position in range(len(self.board)):
+        for position in range(len(board)):
             if color == 'white':
-                if self.board[position] == 'white':
+                if board[position] == 'white':
                     moves = []
                     k = 0
-                    print(position)
+                    #print(position)
                     for i in self.available_moves[position]:
-                        if self.board[i] is None:
+                        if board[i] is None:
                             moves.append(i)
                             calculated_moves[position] = moves
                     for j in self.available_captures[position]:
-                        if self.board[j] is None:
+                        if board[j] is None:
                             value = self.jumps[position][k]
-                            if self.board[value] == 'black':
+                            if board[value] == 'black':
                                 moves.append(j)
                                 calculated_moves[position] = moves
                         k += 1
 
             elif color == 'black':
-                if self.board[position] == 'black':
+                if board[position] == 'black':
                     moves = []
                     k = 0
-                    print(position)
+                    #print(position)
                     for i in self.available_moves[position]:
-                        if self.board[i] is None:
+                        if board[i] is None:
                             moves.append(i)
                             calculated_moves[position] = moves
                     for j in self.available_captures[position]:
-                        if self.board[j] is None:
+                        if board[j] is None:
                             value = self.jumps[position][k]
-                            if self.board[value] == 'white':
+                            if board[value] == 'white':
                                 moves.append(j)
                                 calculated_moves[position] = moves
                         k += 1
@@ -292,9 +294,10 @@ class Game:
         return calculated_moves
 
     def minmax(self, depth, color, board, alpha, beta):
-        virtual_board = [None] * 21
-        for i in range(len(board)):
-            virtual_board[i] = board[i]
+        captured = False
+        virtual_board = board.copy()
+        # for i in range(len(board)):
+        #     virtual_board[i] = board[i]
 
         if depth == 0:
             return self.evaluate_board(virtual_board)
@@ -302,18 +305,20 @@ class Game:
         moves = None
         if color == 'white':
             maxEval = -math.inf
-            moves = self.calculate_moves('white')
+            moves = self.calculate_moves('white', virtual_board)
+            #print('CALCULATED WHITE: ', moves)
             for move in moves:
                 if move is not None:
                     index = moves.index(move)
                     virtual_board[index] = None
                     for pos in move:
-                        value = pos
+                        x = None
                         for captures in self.available_captures[index]:
-                            if captures == value:
+                            if captures == pos:
                                 captures_index = self.available_captures[index].index(captures)
                                 x = self.jumps[index][captures_index]
-                                if virtual_board[x] == 'white':
+                                if virtual_board[x] == 'black':
+                                    captured = True
                                     virtual_board[x] = None
                                     for pawn in self.black_pawns:
                                         if (pawn.x < self.fields_pos[x][0] + 8) and (pawn.x > self.fields_pos[x][0] - 8):
@@ -322,31 +327,47 @@ class Game:
                                                 pawn.y = 0
                                                 pawn.rect.center = (0, 0)
 
-
                         virtual_board[pos] = 'white'
                         eval = self.minmax(depth - 1, 'black', virtual_board, alpha, beta)
                         maxEval = max(maxEval, eval)
                         alpha = max(alpha, eval)
+
+                        if depth == 3:
+                            tmp = [virtual_board, maxEval]
+                            self.evaluated_boards.append(tmp)
+
                         if beta <= alpha:
                             break
-                    self.board = virtual_board
-                    return maxEval
+
+                        if depth < 3:
+                            virtual_board[pos] = None
+                            virtual_board[index] = 'white'
+                            if captured and x is not None:
+                                virtual_board[x] = 'black'
+
+            # if depth == 3:
+            #     tmp = [virtual_board, maxEval]
+            #     self.evaluated_boards.append(tmp)
+
+            return maxEval
 
         else:
             minEval = math.inf
-            moves = self.calculate_moves('black')
+            moves = self.calculate_moves('black', virtual_board)
+            print('CALCULATED BLACK: ', moves)
             for move in moves:
                 if move is not None:
                     index = moves.index(move)
                     virtual_board[index] = None
                     for pos in move:
-                        value = pos
+                        x = None
                         for captures in self.available_captures[index]:
-                            if captures == value:
-                                print('CAPTURES: ', captures)
+                            if captures == pos:
+                                #print('CAPTURES: ', captures)
                                 captures_index = self.available_captures[index].index(captures)
                                 x = self.jumps[index][captures_index]
                                 if virtual_board[x] == 'white':
+                                    captured = True
                                     virtual_board[x] = None
                                     for pawn in self.white_pawns:
                                         if (pawn.x < self.fields_pos[x][0] + 8) and (pawn.x > self.fields_pos[x][0] - 8):
@@ -356,13 +377,29 @@ class Game:
                                                 pawn.rect.center = (0, 0)
 
                         virtual_board[pos] = 'black'
-                        eval= self.minmax(depth - 1, 'white', virtual_board, alpha, beta)
+                        eval = self.minmax(depth - 1, 'white', virtual_board, alpha, beta)
                         minEval = min(minEval, eval)
                         beta = min(beta, eval)
+
+                        if depth == 3:
+                            tmp = [virtual_board, minEval]
+                            #print('TMP: ', tmp)
+                            self.evaluated_boards.append(tmp)
+
                         if beta <= alpha:
                             break
-                    self.board = virtual_board
-                    return minEval
+
+                        if depth < 3:
+                            virtual_board[pos] = None
+                            virtual_board[index] = 'black'
+                            if captured and x is not None:
+                                virtual_board[x] = 'white'
+
+            # if depth == 3:
+            #     tmp = [virtual_board, minEval]
+            #     self.evaluated_boards.append(tmp)
+
+            return minEval
 
     def play(self):
         pygame.init()
@@ -385,18 +422,17 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit()
-                elif event.type == pygame.MOUSEBUTTONDOWN and not self.done:
-                    self.done = True
-                    xMouse = event.pos[0]
-                    yMouse = event.pos[1]
-                    print(xMouse, yMouse)
+                if self.next_move == 'white':
+                    if event.type == pygame.MOUSEBUTTONDOWN and not self.done:
+                        self.done = True
+                        xMouse = event.pos[0]
+                        yMouse = event.pos[1]
+                        #print(xMouse, yMouse)
 
-                    # clicked_white = [p for p in white_pawns if p.rect.collidepoint(xMouse, yMouse)]
-                    # clicked_black = [p for p in black_pawns if p.rect.collidepoint(xMouse, yMouse)]
+                        # clicked_white = [p for p in white_pawns if p.rect.collidepoint(xMouse, yMouse)]
+                        # clicked_black = [p for p in black_pawns if p.rect.collidepoint(xMouse, yMouse)]
 
-                    index = None
-
-                    if self.next_move == 'white':
+                        index = None
                         for p in self.white_pawns:
                             if p.rect.collidepoint(xMouse, yMouse):
                                 self.clicked_white.append(p)
@@ -410,10 +446,66 @@ class Game:
                             self.done = False
                             textsurface = font.render('Pionek wybrany niepoprawnie!', False, (0, 0, 0))
 
-                    elif self.next_move == 'black':
-                        eval = self.minmax(3, 'black', self.board, -math.inf, math.inf)
-                        self.color = 1
-                        self.next_move = 'white'
+                    elif event.type == pygame.MOUSEBUTTONDOWN and self.done:
+                        self.done = False
+                        xMouse2 = event.pos[0]
+                        yMouse2 = event.pos[1]
+                        # clicked_pawn.x = xMouse2
+                        # clicked_pawn.y = yMouse2
+
+                        if self.move(xMouse, yMouse, xMouse2, yMouse2):
+                            if self.color == 0:
+                                self.white_pawns[index].x = xMouse2
+                                self.white_pawns[index].y = yMouse2
+                                self.white_pawns[index].rect.center = (xMouse2, yMouse2)
+
+                            elif self.color == 1:
+                                self.black_pawns[index].x = xMouse2
+                                self.black_pawns[index].y = yMouse2
+                                self.black_pawns[index].rect.center = (xMouse2, yMouse2)
+
+                            textsurface = font.render('', False, (0, 0, 0))
+
+                        else:
+                            textsurface = font.render('Niepoprawny ruch!', False, (0, 0, 0))
+
+                        #for whitepawn in self.white_pawns:
+                            #print(whitepawn.x, whitepawn.y)
+
+                        #print()
+
+                        #for blackpawn in self.black_pawns:
+                            #print(blackpawn.x, blackpawn.y)
+
+                        # clicked_pawn.rect.center = (clicked_pawn.x, clicked_pawn.y)
+
+                        self.clicked_white = []
+                        self.clicked_black = []
+
+                elif self.next_move == 'black':
+                    miN = 100
+                    eval = self.minmax(3, 'black', self.board, -math.inf, math.inf)
+                    for element in self.evaluated_boards:
+                        #print('ELEMENT: ', element[0])
+                        if element[1] == eval:
+                            self.board = element[0]
+                            self.evaluated_boards = []
+                            break
+
+                    # for element in self.evaluated_boards:
+                    #     if element[1] < miN:
+                    #         miN = element[1]
+                    #
+                    # print('MIN: ', miN)
+                    #
+                    # for x in self.evaluated_boards:
+                    #     if x[1] == miN:
+                    #         self.board = x[0]
+                    #         self.evaluated_boards = []
+                    #         break
+
+                    self.color = 1
+                    self.next_move = 'white'
 
                         # for p in self.black_pawns:
                         #     if p.rect.collidepoint(xMouse, yMouse):
@@ -434,42 +526,6 @@ class Game:
                     #         pawn.x = xMouse
                     #         pawn.y = yMouse
                     #         pawn.rect.center = (pawn.x, pawn.y)
-
-                elif event.type == pygame.MOUSEBUTTONDOWN and self.done:
-                    self.done = False
-                    xMouse2 = event.pos[0]
-                    yMouse2 = event.pos[1]
-                    # clicked_pawn.x = xMouse2
-                    # clicked_pawn.y = yMouse2
-
-                    if self.move(xMouse, yMouse, xMouse2, yMouse2):
-                        if self.color == 0:
-                            self.white_pawns[index].x = xMouse2
-                            self.white_pawns[index].y = yMouse2
-                            self.white_pawns[index].rect.center = (xMouse2, yMouse2)
-
-                        elif self.color == 1:
-                            self.black_pawns[index].x = xMouse2
-                            self.black_pawns[index].y = yMouse2
-                            self.black_pawns[index].rect.center = (xMouse2, yMouse2)
-
-                        textsurface = font.render('', False, (0, 0, 0))
-
-                    else:
-                        textsurface = font.render('Niepoprawny ruch!', False, (0, 0, 0))
-
-                    for whitepawn in self.white_pawns:
-                        print(whitepawn.x, whitepawn.y)
-
-                    print()
-
-                    for blackpawn in self.black_pawns:
-                        print(blackpawn.x, blackpawn.y)
-
-                    # clicked_pawn.rect.center = (clicked_pawn.x, clicked_pawn.y)
-
-                    self.clicked_white = []
-                    self.clicked_black = []
 
             screen.blit(background, (0, 0))
             screen.blit(textsurface, (0, 0))
